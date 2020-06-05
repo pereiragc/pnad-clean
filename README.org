@@ -3,10 +3,8 @@
 * Maya and Pereira (2020): clean PNAD data
 
 
-This repo reproduces the cleaning procedure used before analysing PNAD data. It
-is a part of the replication package of Maya and Pereira (2020).
-
-
-
+The code here is a part of the replication package of Maya and Pereira (2020).
 
 ** [ ] Dependencies
+
+** [ ] Instructions
