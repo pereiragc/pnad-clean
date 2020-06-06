@@ -6,5 +6,11 @@
 The code here is a part of the replication package of Maya and Pereira (2020).
 
 ** [ ] Dependencies
+|   |   |
+|   |   |
 
 ** [ ] Instructions
+
+** Task list
+
+*** [ ] Create package
