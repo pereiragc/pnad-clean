@@ -82,17 +82,12 @@ pnadGetDownloaded <- function(pnad_data_path){
 }
 
 
-pnadRead_single <- function(datazip, coldict, label_states){
+pnadRead_single <- function(datazip, coldict){
   DT <- read_fwf(datazip, fwf_widths(coldict$Width, coldict$Name),
                  col_types = columnSpecification(coldict),
                  na = c("", "."))
   setDT(DT)
 
-
-  if (!is.null(label_states)) {
-    DT[uf_translate, uf_name := uf_name, on="UF"]
-    setnames(DT, "uf_name", label_states)
-  }
 
   ## cols.convert.numeric  <-  coldict[IsNumeric == TRUE, Name]
   ## for (col in cols.convert.numeric){
@@ -106,15 +101,14 @@ pnadRead_single <- function(datazip, coldict, label_states){
 
 
 pnadRead_generic <- function(pnad.data.path, coldict,
-                             startyear, startqtr, endyear, endqtr,
-                             label_states="uf_name") {
+                             startyear, startqtr, endyear, endqtr) {
   all.years <- pnadGetDownloaded(pnad.data.path)[
     lexicompare(yr, qtr, vals=c(startyear, startqtr), binop=`>=`) &
     lexicompare(yr, qtr, vals=c(endyear, endqtr), binop=`<=`)
   ]
 
   lfulldata  <- lapply(all.years[,filename], pnadRead_single,
-                       coldict=coldict, label_states=label_states)
+                       coldict=coldict)
   names(lfulldata) <- all.years[, lname]
 
   return(lfulldata)
@@ -125,8 +119,7 @@ pnadRead_generic <- function(pnad.data.path, coldict,
 pnadRead <- function(coldict, param) {
   pnadRead_generic(param$dlpath, coldict,
                    param$startyear, param$startqtr,
-                   param$endyear, param$endqtr,
-                   param$state_varname)
+                   param$endyear, param$endqtr)
 }
 
 
