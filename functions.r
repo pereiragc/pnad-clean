@@ -41,7 +41,7 @@ guessDictFilename <- function(dlpath) {
   txtfiles <- list.files(dlpath, pattern="txt$")
 
   if (length(txtfiles) == 0) {
-    stop(gsubfn$identity("No candidate dictionaries in directory {dlpath}"))
+    stop(glue("No candidate dictionaries in directory {dlpath}"))
   }
 
 
