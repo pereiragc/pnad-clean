@@ -148,3 +148,11 @@ columnSpecification <- function(coldict){
 
   return(col_types)
 }
+
+
+
+prettyQuarter <- function(DT, qname="qid"){
+  require(zoo)
+  DT[, (qname) := gsub("\\.", "q", get(qname))]
+  DT[, (qname) := as.yearqtr(get(qname))]
+}
