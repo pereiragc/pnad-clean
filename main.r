@@ -37,9 +37,10 @@ param <- list(
   endyear = 2016,
   endqtr = 4,
   state_varname="uf_name",
+  export_directory = "./output",
   export_fullname = paste0("pnadc_treated_",
                            "{param$startyear}q{param$startqtr}-",
-                           "{param$endyear}q{param$endqtr}")
+                           "{param$endyear}q{param$endqtr}.Rds")
 )
 
 
@@ -65,17 +66,13 @@ groups_specification[[2]] <- list(
 )
 
 cols.keep <- c("household", "qid","Ano", "Trimestre", "dbirth", "age", "UPA",
-               "uf_name", "V1023", "V1028", "male", "V2010", "head", "V20082",
-               "VD3004", "VD4002", "VD4009", "VD4015", "VD4016", "VD4017",
-               "VD4019", "VD4020", "V4010", "V4013", "V4019", "V4046", "VD4001",
-               "VD4007", "VD4010", "VD4011", "VD4012", "formality_status",
-               "educ_group", "labor_status")
+               "uf_name", "V1023", "V2003", "V2005", "V1028", "male", "V2010",
+               "head", "V20082", "VD3004", "VD4002", "VD4009", "VD4015",
+               "VD4016", "VD4017", "VD4019", "VD4020", "V4010", "V4013",
+               "V4019", "V4046", "VD4001", "VD4007", "VD4010", "VD4011",
+               "VD4012", "formality_status", "educ_group", "labor_status")
 ##        ^  Note that some of the variables are created in the cleaning
 ##           process and do not show up in the documentation file.
-
-
-
-
 ## =============================================================================
 
 
@@ -98,6 +95,7 @@ dt_pnad_dict <- getColDict(pnad_dict_fname) # pnad variable names & description
                                             # with proper column names
 
 list_pnad <- pnadRead(dt_pnad_dict, param)  # read datasets
+## =============================================================================
 
 
 ## -----------------------------------------------------------------------------
@@ -150,6 +148,7 @@ clean_each <- function(dt_quarter, param) {
 
 
 invisible(lapply(list_pnad, clean_each, param=param))
+## =============================================================================
 
 
 ## -----------------------------------------------------------------------------
@@ -157,10 +156,11 @@ invisible(lapply(list_pnad, clean_each, param=param))
 dt_pnad <- rbindlist(list_pnad)
 rm(list_pnad)
 gc()
-
+## =============================================================================
 
 ## -----------------------------------------------------------------------------
 ## * Part 4: Cleaning steps after combining
+
 
 ## Create "pretty (date-formatted) quarter variable"
 ## [note: maintain `qid` because having a factor is efficient
@@ -169,8 +169,13 @@ dt_pnad[, qid_pretty := qid]
 prettyQuarter(dt_pnad, "qid_pretty")
 
 
+## * Part 5: Export
 
-## -----------------------------------------------------------------------------
-## * Part 5: Identify people within households
+if (!dir.exists(param$export_directory)) {
+  warning(glue("Specified export directory `{param$export_directory}`",
+               "does not exist; creating it now."))
+  dir.create(param$export_directory)
+}
 
-
+saveRDS(dt_pnad[, cols.keep, with=FALSE],
+        file.path(param$export_directory, glue(param$export_fullname)))
