@@ -124,7 +124,7 @@ clean_each <- function(dt_quarter, param) {
     head = V2005 == "01",
     qid  = interaction(Ano, Trimestre, lex.order=TRUE),
     household = interaction(UPA, V1008, V1014),
-    dbirth = interaction(V20082, V20081, V2008)
+    dbirth = as.Date(interaction(V20082, V20081, V2008, sep="-"))
   )]
 
   ## Create groups based on `groups_specification`
