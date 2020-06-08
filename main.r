@@ -34,10 +34,12 @@ param <- list(
   dict_filename=guessDictFilename(dlpath), # "Input_PNADC_trimestral.txt"
   startyear = 2015,
   startqtr = 1,
-  endyear = 2015,
+  endyear = 2016,
   endqtr = 4,
-  state_varname="uf_name"
-  export_fname = ""
+  state_varname="uf_name",
+  export_fullname = paste0("pnadc_treated_",
+                           "{param$startyear}q{param$startqtr}-",
+                           "{param$endyear}q{param$endqtr}")
 )
 
 
@@ -61,6 +63,17 @@ groups_specification[[2]] <- list(
                 informal = c("02", "04", "06"),
                 self_employed = "")
 )
+
+cols.keep <- c("household", "qid","Ano", "Trimestre", "dbirth", "age", "UPA",
+               "uf_name", "V1023", "V1028", "male", "V2010", "head", "V20082",
+               "VD3004", "VD4002", "VD4009", "VD4015", "VD4016", "VD4017",
+               "VD4019", "VD4020", "V4010", "V4013", "V4019", "V4046", "VD4001",
+               "VD4007", "VD4010", "VD4011", "VD4012", "formality_status",
+               "educ_group", "labor_status")
+##        ^  Note that some of the variables are created in the cleaning
+##           process and do not show up in the documentation file.
+
+
 
 
 ## =============================================================================
@@ -112,6 +125,7 @@ clean_each <- function(dt_quarter, param) {
     male = V2007 == 1,
     head = V2005 == "01",
     qid  = interaction(Ano, Trimestre, lex.order=TRUE),
+    household = interaction(UPA, V1008, V1014),
     dbirth = interaction(V20082, V20081, V2008)
   )]
 
@@ -131,7 +145,6 @@ clean_each <- function(dt_quarter, param) {
   dt_quarter[, labor_status := factor(labor_status,
                                      levels=c("not_employed", "formal", "informal"))]
 
-
   cat(".\n")
 }
 
@@ -139,18 +152,25 @@ clean_each <- function(dt_quarter, param) {
 invisible(lapply(list_pnad, clean_each, param=param))
 
 
+## -----------------------------------------------------------------------------
 ## * Part 3: Combine
 dt_pnad <- rbindlist(list_pnad)
 rm(list_pnad)
 gc()
 
 
+## -----------------------------------------------------------------------------
+## * Part 4: Cleaning steps after combining
 
-## * Part 4: Export derivative dataset
-cols.keep <- c("household", "qid","Ano", "Trimestre", "dbirth", "age", "UPA",
-               "uf_name", "V1023", "V1028", "male", "V2010", "head", "V20082",
-               "VD3004", "VD4002", "VD4009", "VD4015", "VD4016", "VD4017",
-               "VD4019", "VD4020", "V4010", "V4013", "V4019", "V4046", "VD4001",
-               "VD4007", "VD4010", "VD4011", "VD4012", "formality_status",
-               "educ_group", "labor_status")
+## Create "pretty (date-formatted) quarter variable"
+## [note: maintain `qid` because having a factor is efficient
+## for subsetting]
+dt_pnad[, qid_pretty := qid]
+prettyQuarter(dt_pnad, "qid_pretty")
+
+
+
+## -----------------------------------------------------------------------------
+## * Part 5: Identify people within households
+
 
