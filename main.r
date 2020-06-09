@@ -129,7 +129,7 @@ clean_each <- function(dt_quarter, param) {
 
   ## Create groups based on `groups_specification`
   lapply(groups_specification, function(lgroup) {
-    set_group(dt_quarter, lgroup$variable, lgroup$groups, lgroup$name)
+    setGroup(dt_quarter, lgroup$variable, lgroup$groups, lgroup$name)
   })
 
 
