@@ -204,11 +204,6 @@ tab(dt_pnad, "appearance_count1")[[1]]$tab[]
 
 
 ** Deal with remaining people
-Remaining households are dealth with by using (household, male, AGE). There is a
-sort of painful issue related to this: people are expected to show up for five
-quarters, so everyone's age increases by one, and possibly by two.
-
-
 
 #+BEGIN_SRC R :session :results silent output
 dt_pnad[is.na(person_id1), person_id2 := paste(male, age, household, sep=".")]
