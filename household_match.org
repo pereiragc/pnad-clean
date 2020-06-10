@@ -24,7 +24,7 @@ source("rtoolkit/R/datatable.r")
 list.files("output")
 #+END_SRC
 
-#+RESULTS:
+#+RESULTS: first_steps
 | pnadc_treated_2012q1-2019q3.Rds |
 | pnadc_treated_2015q4-2016q4.Rds |
 
@@ -64,7 +64,7 @@ dt_pnad_sample[recode_rule, hhid := newname, on="household"]
 Let's order the sample by household and quarter.
 
 #+NAME: print_sample
-#+BEGIN_SRC R :session :exports both :results table :colnames yes
+#+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
 setkey(dt_pnad_sample, hhid, qid)
 dt_pnad_sample[, .(qid, hhid, age, numero_ordem=V2003, data_nasc=dbirth,
                    male, hh_role=V2005)]
@@ -111,7 +111,7 @@ dt_pnad_sample[, .(qid, hhid, age, numero_ordem=V2003, data_nasc=dbirth,
 
   This is not the case:
   #+NAME: count_sample_households_appearance
-  #+BEGIN_SRC R :session :exports both :results table :colnames yes
+  #+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
 dt_pnad_sample[, unique(qid), hhid]
   #+END_SRC
 
@@ -137,7 +137,7 @@ dt_pnad_sample[, unique(qid), hhid]
 * Matching people inside households
 - The ideal way of identifying people within a household would be to use the pair (sex, date of birth)
 - However, as the following table shows, there are about 10% missing entries for that variable
-  #+BEGIN_SRC R :session :exports both :results table :colnames yes
+  #+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
 dt_pnad[, .(missing_dbirth = is.na(dbirth))][, .N, missing_dbirth][
  ,.(missing_dbirth, n=N, perc=N/sum(N))]
   #+END_SRC
@@ -167,43 +167,48 @@ setkey(dt_pnad, household, male, dbirth, qid)
 #+END_SRC
 
 
-How many times does a (household, identifier, quarter) show up? Should be once. Let's check.
+How many times does a (person_id, quarter) show up? Should be once. Let's check.
 
 #+NAME: appearance_count_dbirth_identifier
-#+BEGIN_SRC R :session :exports both :results table :colnames yes
+#+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
 dt_pnad[!is.na(dbirth), appearance_count1 := .N, .(person_id1, qid)]
 
-tab(dt_pnad, "appearance_count")[[1]]$tab
+tab(dt_pnad, "appearance_count1")[[1]]$tab[]
 #+END_SRC
 
 #+RESULTS: appearance_count_dbirth_identifier
-| appearance_count | Number of occurrences | Proportion of total | Proportion in group |
-|------------------+-----------------------+---------------------+---------------------|
-|                1 |               2565951 |    90.2539363743324 |    90.2539363743324 |
-|                2 |                 10694 |   0.376147321436423 |   0.376147321436423 |
-|                3 |                    90 | 0.00316563109493904 | 0.00316563109493904 |
-|              nil |                266300 |    9.36675067313628 |    9.36675067313628 |
+| appearance_count1 | Number of occurrences | Proportion of total | Proportion in group |
+|-------------------+-----------------------+---------------------+---------------------|
+|                 1 |               2565951 |    90.2539363743324 |    90.2539363743324 |
+|                 2 |                 10694 |   0.376147321436423 |   0.376147321436423 |
+|                 3 |                    90 | 0.00316563109493904 | 0.00316563109493904 |
+|               nil |                266300 |    9.36675067313628 |    9.36675067313628 |
 
 + _Note_:
   + People who show up twice or thrice might be twins/triplets living in the same
     house. Let's investigate.
 
     #+BEGIN_SRC R :session :exports both :results table :colnames yes
-  dt_pnad[, .(median_age = median(age)), appearance_count][order(appearance_count)]
+  dt_pnad[, .(median_age = median(age)), appearance_count1][order(appearance_count1)][]
     #+END_SRC
 
     #+RESULTS:
-    | appearance_count | median_age |
-    |------------------+------------|
-    |                1 |         32 |
-    |                2 |         12 |
-    |                3 |        7.5 |
-    |              nil |         33 |
+    | appearance_count1 | median_age |
+    |-------------------+------------|
+    |                 1 |         32 |
+    |                 2 |         12 |
+    |                 3 |        7.5 |
+    |               nil |         33 |
 
      So in any case, more than half of those observations will be dropped at the point in which we discard people before working age.
 
 
 ** Deal with remaining people
+Remaining households are dealth with by using (household, male, AGE). There is a
+sort of painful issue related to this: people are expected to show up for five
+quarters, so everyone's age increases by one, and possibly by two.
+
+
 
 #+BEGIN_SRC R :session :results silent output
 dt_pnad[is.na(person_id1), person_id2 := paste(male, age, household, sep=".")]
@@ -211,16 +216,18 @@ dt_pnad[is.na(person_id1), person_id2 := paste(male, age, household, sep=".")]
 
 Within this group, how many are unambiguously identified this way?
 
-#+BEGIN_SRC R :session
+#+BEGIN_SRC R :session :results table :exports both :tangle no :colnames yes
 dt_pnad[, appearance_count2 := .N, .(person_id2, qid)]
 
-tab(dt_pnad[is.na(person_id1)], "appearance_count2")[[1]]$tab
+tab(dt_pnad[is.na(person_id1)], "appearance_count2")[[1]]$tab[]
 #+END_SRC
 
 #+RESULTS:
-| 1 | 264398 |     99.285767930905 |     99.285767930905 |
-| 2 |   1884 |   0.707472775065715 |   0.707472775065715 |
-| 3 |     18 | 0.00675929402929027 | 0.00675929402929027 |
+| appearance_count2 | Number of occurrences | Proportion of total | Proportion in group |
+|-------------------+-----------------------+---------------------+---------------------|
+|                 1 |                264398 |     99.285767930905 |     99.285767930905 |
+|                 2 |                  1884 |   0.707472775065715 |   0.707472775065715 |
+|                 3 |                    18 | 0.00675929402929027 | 0.00675929402929027 |
 
 Interestingly, it seems that this is a major success!
 
@@ -246,8 +253,8 @@ dt_pnad[!is.na(person_id2) & appearance_count2 > 1, flag_person_id := 3]
 
 Now let's tabulate the results.
 
-#+BEGIN_SRC R :session :results table :exports both
-tab(dt_pnad, "flag_person_id")[[1]]$tab
+#+BEGIN_SRC R :session :results table :exports both :tangle no :colnames yes
+tab(dt_pnad, "flag_person_id")[[1]]$tab[]
 #+END_SRC
 
 #+RESULTS:
