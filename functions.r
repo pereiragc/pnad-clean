@@ -156,3 +156,56 @@ prettyQuarter <- function(DT, qname="qid"){
   DT[, (qname) := gsub("\\.", "q", get(qname))]
   DT[, (qname) := as.yearqtr(get(qname))]
 }
+
+
+
+pnadInferIndividualIDs <- function(DT) {
+  ## Assumptions:
+  ##
+  ## 1. Columns `household`, `dbirth`, `male`, `qid` have been added
+
+
+  relevant_cols <- c("household", "dbirth", "male", "qid")
+
+  missing_cols <- relevant_cols[! relevant_cols %in% colnames(DT)]
+
+  if (length(missing_cols) > 0) {
+    glued <- paste(missing_cols, collapse=", ")
+
+    errmsg <- paste0(
+      "In `pnadInferIndividualIDs`\nMissing columns in DT ",
+      "for this step: {glued}"
+    )
+
+    stop(glue(errmsg))
+  }
+
+  DT[!is.na(dbirth), person_id1 := paste(household, male, dbirth, sep="-")]
+  DT[!is.na(dbirth), appearance_count1 := .N, .(person_id1, qid)]
+
+
+
+  DT[is.na(person_id1), person_id2 := paste(male, age, household, sep=".")]
+  DT[, appearance_count2 := .N, .(person_id2, qid)]
+
+  DT[, flag_person_id := NULL]
+  DT[!is.na(person_id1) & appearance_count1 == 1, flag_person_id := 0]
+  DT[!is.na(person_id2) & appearance_count2 == 1, flag_person_id := 1]
+  DT[!is.na(person_id1) & appearance_count1 > 1, flag_person_id := 2]
+  DT[!is.na(person_id2) & appearance_count2 > 1, flag_person_id := 3]
+
+
+  DT[flag_person_id <= 1 & !is.na(person_id1), person_id := person_id1]
+  DT[flag_person_id <= 1 & !is.na(person_id2), person_id := person_id2]
+
+
+  dt_relabel <- DT[!is.na(person_id), .(person_id = unique(person_id))]
+  dt_relabel[, new_id := formatC(1:.N,
+                                 width  = floor(log10(.N)) + 1,
+                                 format = "d",
+                                 flag   = "0")]
+
+  DT[dt_relabel, person_id := factor(new_id), on = "person_id"]
+  DT[, c("person_id1", "person_id2",
+         "appearance_count1", "appearance_count2") := NULL]
+}
