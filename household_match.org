@@ -17,7 +17,7 @@ Assumption:
 Let's see what we got. Load relevant libraries and list files in the =output= directory.
 
 #+NAME: first_steps
-#+BEGIN_SRC R :session
+#+BEGIN_SRC R :session :tangle yes
 library(data.table)
 source("rtoolkit/R/base.r")
 source("rtoolkit/R/datatable.r")
@@ -32,7 +32,7 @@ OK, so we have a dataset that covers first quarter of 2015 until fourth quarter 
 
 Let's load it to memory.
 #+NAME: load_data
-#+BEGIN_SRC R :session :results silent output :cache yes
+#+BEGIN_SRC R :session :results silent output :cache yes :tangle yes
 dt_pnad <- readRDS("output/pnadc_treated_2015q4-2016q4.Rds")
 #+END_SRC
 
@@ -42,7 +42,7 @@ dt_pnad <- readRDS("output/pnadc_treated_2015q4-2016q4.Rds")
 First, let's create extract a sample of households from the data.
 
 #+NAME: extract_sample
-#+BEGIN_SRC R :session :results silent output
+#+BEGIN_SRC R :session :results silent output :tangle yes
 set.seed(42)
 
 
@@ -56,7 +56,7 @@ To facilitate visualizing, I'll relabel household according to letters in the
 alphabet. (Assuming, of course, you don't set ~N~ to a too large number.)
 
 #+NAME: relabel_extracted_sample
-#+BEGIN_SRC R :session :results silent output
+#+BEGIN_SRC R :session :results silent output :tangle yes
 recode_rule <- data.table(household=sample_hh, newname=LETTERS[1:N])
 dt_pnad_sample[recode_rule, hhid := newname, on="household"]
 #+END_SRC
@@ -160,7 +160,7 @@ Create an identifier interacting =household=, =male= and =dbirth=, whenever =dbi
 available, and order results by household-identifier-quarter
 
 #+NAME: interact_hh_dbirth_sex
-#+BEGIN_SRC R :session :results silent output
+#+BEGIN_SRC R :session :results silent output :tangle yes
 dt_pnad[!is.na(dbirth), person_id1 := paste(household, male, dbirth, sep="-")]
 
 setkey(dt_pnad, household, male, dbirth, qid)
@@ -205,7 +205,12 @@ tab(dt_pnad, "appearance_count1")[[1]]$tab[]
 
 ** Deal with remaining people
 
-#+BEGIN_SRC R :session :results silent output
++ For the rest of the people, we proceed by matching based on sex and age.
++ Of course, people show up on 5 consecutive quarters so that necessarily overlaps with their birthday.
++ Moreover, every quarter the interviewer asks individuals to confirm their age. (See [[file:Doc/2016-manual-basico-pnadc-entrevista.pdf][Manual Basico]], 2016, pp 47-48)
+
+
+#+BEGIN_SRC R :session :results silent output :tangle yes
 dt_pnad[is.na(person_id1), person_id2 := paste(male, age, household, sep=".")]
 #+END_SRC
 
@@ -237,7 +242,7 @@ Below, I implement the ~flag_person_id~ variable, in accordance with the followi
 |           2 | Person's birthday is present, but there are two individuals with same birthday-sex in the household |
 |           3 | Person's birthday is missing, but there are two individuals with same age-sex in the household      |
 
-#+BEGIN_SRC R :session :results silent output :cache yes
+#+BEGIN_SRC R :session :results silent output :tangle yes
 dt_pnad[, flag_person_id := NULL]
 dt_pnad[!is.na(person_id1) & appearance_count1 == 1, flag_person_id := 0]
 dt_pnad[!is.na(person_id2) & appearance_count2 == 1, flag_person_id := 1]
@@ -264,13 +269,13 @@ It is useful to join the two identifiers ~person_id1~ and ~person_id2~ now. Step
 
 1. Create a single variable ~person_id~ joining both -- but only when flag is <= 1
 
-   #+BEGIN_SRC R :session :results silent output
+   #+BEGIN_SRC R :session :results silent output :tangle yes
 dt_pnad[flag_person_id <= 1 & !is.na(person_id1), person_id := person_id1]
 dt_pnad[flag_person_id <= 1 & !is.na(person_id2), person_id := person_id2]
    #+END_SRC
 2. Create neat labels based on ~person_id~
 
-   #+BEGIN_SRC R :session :results silent output
+   #+BEGIN_SRC R :session :results silent output :tangle yes
 dt_relabel <- dt_pnad[!is.na(person_id), .(person_id = unique(person_id))]
 dt_relabel[, new_id := formatC(1:.N,
                                width=floor(log10(.N))+1,
@@ -281,11 +286,11 @@ dt_relabel[, new_id := formatC(1:.N,
 
 3. Overwrite ~person_id~ with neater ~new_id~ in ~dt_pnad~:
 
-   #+BEGIN_SRC R :session :results silent output
+   #+BEGIN_SRC R :session :results silent output :tangle yes
 dt_pnad[dt_relabel, person_id := factor(new_id), on="person_id"]
    #+END_SRC
 
 3. Keep only the relabeled ~person_id~ and ~flag_person_id~
-   #+BEGIN_SRC R :session :results silent output
+   #+BEGIN_SRC R :session :results silent output :tangle yes
 dt_pnad[, c("person_id1", "person_id2", "appearance_count1", "appearance_count2") := NULL]
    #+END_SRC
