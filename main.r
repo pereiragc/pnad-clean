@@ -56,7 +56,6 @@ groups_specification[[1]] <- list(
                 "High School" = c("5","6"),
                 "Higher Educ" = c("7"))
 )
-
 groups_specification[[2]] <- list(
   name = "formality_status",
   variable = "VD4009",
@@ -149,7 +148,7 @@ clean_each <- function(dt_quarter, param) {
 }
 
 
-invisible(lapply(list_pnad, clean_each, param=param))
+invisible(lapply(list_pnad, clean_each, param = param))
 ## =============================================================================
 
 
