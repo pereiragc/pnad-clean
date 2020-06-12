@@ -1,16 +1,16 @@
 
-
 * Maya and Pereira (2020): clean PNAD data
 
+This repo is part of the replication package of Maya and Pereira (2020).
 
-The code here is a part of the replication package of Maya and Pereira (2020).
+** Dependencies
+| Type          | Dependency |
+|---------------+------------|
+| cran packages |            |
+|               | data.table |
+|               | readr      |
+|               | glue       |
+|               | Hmisc      |
+|               | plyr       |
 
-** [ ] Dependencies
-|   |   |
-|   |   |
 
-** [ ] Instructions
-
-** Task list
-
-*** [ ] Create package
