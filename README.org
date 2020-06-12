@@ -4,13 +4,11 @@
 This repo is part of the replication package of Maya and Pereira (2020).
 
 ** Dependencies
-| Type          | Dependency |
-|---------------+------------|
-| cran packages |            |
-|               | data.table |
-|               | readr      |
-|               | glue       |
-|               | Hmisc      |
-|               | plyr       |
-
-
+| Type            | Dependency |
+|-----------------+------------|
+| *cran packages* |            |
+|                 | data.table |
+|                 | readr      |
+|                 | glue       |
+|                 | Hmisc      |
+|                 | plyr       |
