@@ -1,0 +1,298 @@
+#+TITLE: Household match
+#+AUTHOR: Livio Maya, Gustavo Pereira
+#+SETUPFILE: assets/css.org
+#+OPTIONS: ^:nil
+
+* Intro
+
+PNAD tracks households over different waves, but does not track individuals
+within households. Here I document my attempt at creating individual identifiers
+based on characteristics.
+
+* Load data
+Assumption:
+- The data were previously read and cleaned in =main.r=
+- The output is saved to =output/pnadc_treated-YYYYqN-YYYYqM=
+
+Let's see what we got. Load relevant libraries and list files in the =output= directory.
+
+#+NAME: first_steps
+#+BEGIN_SRC R :session :tangle yes
+library(data.table)
+source("rtoolkit/R/base.r")
+source("rtoolkit/R/datatable.r")
+list.files("output")
+#+END_SRC
+
+#+RESULTS: first_steps
+| pnadc_treated_2012q1-2019q3.Rds |
+| pnadc_treated_2015q4-2016q4.Rds |
+
+OK, so we have a dataset that covers first quarter of 2015 until fourth quarter of 2016.
+
+Let's load it to memory.
+#+NAME: load_data
+#+BEGIN_SRC R :session :results silent output :cache yes :tangle yes
+dt_pnad <- readRDS("output/pnadc_treated_2015q4-2016q4.Rds")
+#+END_SRC
+
+* Visualizing the data
+
+
+First, let's create extract a sample of households from the data.
+
+#+NAME: extract_sample
+#+BEGIN_SRC R :session :results silent output :tangle yes
+set.seed(42)
+
+
+N <- 3
+all_hh <- dt_pnad[, unique(household)]
+sample_hh <- sample(all_hh, N)
+dt_pnad_sample <- dt_pnad[household %in% sample_hh]
+#+END_SRC
+
+To facilitate visualizing, I'll relabel household according to letters in the
+alphabet. (Assuming, of course, you don't set ~N~ to a too large number.)
+
+#+NAME: relabel_extracted_sample
+#+BEGIN_SRC R :session :results silent output :tangle yes
+recode_rule <- data.table(household=sample_hh, newname=LETTERS[1:N])
+dt_pnad_sample[recode_rule, hhid := newname, on="household"]
+#+END_SRC
+
+Let's order the sample by household and quarter.
+
+#+NAME: print_sample
+#+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
+setkey(dt_pnad_sample, hhid, qid)
+dt_pnad_sample[, .(qid, hhid, age, numero_ordem=V2003, data_nasc=dbirth,
+                   male, hh_role=V2005)]
+#+END_SRC
+
+#+RESULTS: print_sample
+|    qid | hhid | age | numero_ordem |  data_nasc | male  | hh_role |
+|--------+------+-----+--------------+------------+-------+---------|
+| 2015.4 | A    |  39 |            1 | 1976-04-26 | FALSE |       1 |
+| 2015.4 | A    |   6 |            2 | 2009-07-09 | FALSE |       5 |
+| 2015.4 | A    |   4 |            3 | 2011-10-04 | FALSE |       5 |
+| 2015.4 | A    |  40 |            4 | 1975-06-24 | TRUE  |      12 |
+| 2015.4 | A    |  37 |            5 | 1978-01-01 | TRUE  |      12 |
+| 2015.4 | A    |  35 |            6 | 1980-10-09 | TRUE  |      12 |
+| 2015.4 | B    |  34 |            1 | 1981-04-27 | FALSE |       1 |
+| 2015.4 | B    |  14 |            2 | 2001-01-12 | FALSE |       5 |
+| 2015.4 | B    |   1 |            3 | 2014-02-09 | TRUE  |       5 |
+| 2016.1 | B    |  34 |            1 | 1981-04-27 | FALSE |       1 |
+| 2016.1 | B    |  15 |            2 | 2001-01-12 | FALSE |       5 |
+| 2016.1 | B    |   2 |            3 | 2014-02-09 | TRUE  |       5 |
+| 2016.2 | B    |  35 |            1 | 1981-04-27 | FALSE |       1 |
+| 2016.2 | B    |  15 |            2 | 2001-01-12 | FALSE |       5 |
+| 2016.2 | B    |   2 |            3 | 2014-02-09 | TRUE  |       5 |
+| 2016.3 | B    |  35 |            1 | 1981-04-27 | FALSE |       1 |
+| 2016.3 | B    |  15 |            2 | 2001-01-12 | FALSE |       5 |
+| 2016.3 | B    |   2 |            3 | 2014-02-09 | TRUE  |       5 |
+| 2015.4 | C    |  59 |            1 | 1955-11-24 | FALSE |       1 |
+| 2015.4 | C    |  69 |            2 | 1946-02-16 | TRUE  |       2 |
+| 2015.4 | C    |  21 |            3 | 1994-07-16 | TRUE  |       4 |
+| 2015.4 | C    |  10 |            4 | 2005-04-04 | FALSE |      10 |
+| 2015.4 | C    |   9 |            5 | 2006-07-28 | TRUE  |      10 |
+| 2015.4 | C    |   2 |            6 | 2012-12-12 | TRUE  |      10 |
+| 2016.1 | C    |  60 |            1 | 1955-11-24 | FALSE |       1 |
+| 2016.1 | C    |  69 |            2 | 1946-02-16 | TRUE  |       2 |
+| 2016.1 | C    |  21 |            3 | 1994-07-16 | TRUE  |       4 |
+| 2016.1 | C    |  10 |            4 | 2005-04-04 | FALSE |      10 |
+| 2016.1 | C    |   9 |            5 | 2006-07-28 | TRUE  |      10 |
+| 2016.1 | C    |   3 |            6 | 2012-12-12 | TRUE  |      10 |
+| 2016.2 | C    |  49 |            1 |        nil | TRUE  |       1 |
+
+- Note that household ~C~ has a change in the head of household
+
+- Note that ideally each household should show up 5 consecutive quarters
+
+  This is not the case:
+  #+NAME: count_sample_households_appearance
+  #+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
+dt_pnad_sample[, unique(qid), hhid]
+  #+END_SRC
+
+  #+RESULTS: count_sample_households_appearance
+  | hhid |     V1 |
+  |------+--------|
+  | B    | 2015.4 |
+  | B    | 2016.1 |
+  | B    | 2016.2 |
+  | B    | 2016.3 |
+  | A    | 2015.4 |
+  | C    | 2015.4 |
+  | C    | 2016.1 |
+  | C    | 2016.2 |
+
+  - Possibilities:
+    1. Attrition
+    2. Prior joining quarters:
+       - ~A~ could have joined in 2014.4
+       - ~B~ could have joined in 2015.3
+       - ~C~ could have joined in 2015.2
+
+* Matching people inside households
+- The ideal way of identifying people within a household would be to use the pair (sex, date of birth)
+- However, as the following table shows, there are about 10% missing entries for that variable
+  #+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
+dt_pnad[, .(missing_dbirth = is.na(dbirth))][, .N, missing_dbirth][
+ ,.(missing_dbirth, n=N, perc=N/sum(N))]
+  #+END_SRC
+
+  #+RESULTS:
+  | missing_dbirth |       n |               perc |
+  |----------------+---------+--------------------|
+  | FALSE          | 2576735 |  0.906332493268637 |
+  | TRUE           |  266300 | 0.0936675067313628 |
+- My strategy will be the following.
+  1. Try to match people using date of birth
+
+  2. Those who are unmatched will be flagged
+
+  3. Will attempt to merge those who aren't matched with (sex, age)
+
+** Date of birth
+
+Create an identifier interacting =household=, =male= and =dbirth=, whenever =dbirth= is
+available, and order results by household-identifier-quarter
+
+#+NAME: interact_hh_dbirth_sex
+#+BEGIN_SRC R :session :results silent output :tangle yes
+dt_pnad[!is.na(dbirth), person_id1 := paste(household, male, dbirth, sep="-")]
+
+setkey(dt_pnad, household, male, dbirth, qid)
+#+END_SRC
+
+
+How many times does a (person_id, quarter) show up? Should be once. Let's check.
+
+#+NAME: appearance_count_dbirth_identifier
+#+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle no
+dt_pnad[!is.na(dbirth), appearance_count1 := .N, .(person_id1, qid)]
+
+tab(dt_pnad, "appearance_count1")[[1]]$tab[]
+#+END_SRC
+
+#+RESULTS: appearance_count_dbirth_identifier
+| appearance_count1 | Number of occurrences | Proportion of total | Proportion in group |
+|-------------------+-----------------------+---------------------+---------------------|
+|                 1 |               2565951 |    90.2539363743324 |    90.2539363743324 |
+|                 2 |                 10694 |   0.376147321436423 |   0.376147321436423 |
+|                 3 |                    90 | 0.00316563109493904 | 0.00316563109493904 |
+|               nil |                266300 |    9.36675067313628 |    9.36675067313628 |
+
++ _Note_:
+  + People who show up twice or thrice might be twins/triplets living in the same
+    house. Let's investigate.
+
+    #+BEGIN_SRC R :session :exports both :results table :colnames yes :tangle yes
+  dt_pnad[, .(median_age = median(age)), appearance_count1][order(appearance_count1)][]
+    #+END_SRC
+
+    #+RESULTS:
+    | appearance_count1 | median_age |
+    |-------------------+------------|
+    |                 1 |         32 |
+    |                 2 |         12 |
+    |                 3 |        7.5 |
+    |               nil |         33 |
+
+     So in any case, more than half of those observations will be dropped at the point in which we discard people before working age.
+
+
+** Deal with remaining people
+
++ For the rest of the people, we proceed by matching based on sex and age.
++ Of course, people show up on 5 consecutive quarters so that necessarily overlaps with their birthday.
++ Moreover, every quarter the interviewer asks individuals to confirm their age. (See [[file:Doc/2016-manual-basico-pnadc-entrevista.pdf][Manual Basico]], 2016, pp 47-48)
+
+
+#+BEGIN_SRC R :session :results silent output :tangle yes
+dt_pnad[is.na(person_id1), person_id2 := paste(male, age, household, sep=".")]
+#+END_SRC
+
+Within this group, how many are unambiguously identified this way?
+
+#+BEGIN_SRC R :session :results table :exports both :tangle no :colnames yes
+dt_pnad[, appearance_count2 := .N, .(person_id2, qid)]
+
+tab(dt_pnad[is.na(person_id1)], "appearance_count2")[[1]]$tab[]
+#+END_SRC
+
+#+RESULTS:
+| appearance_count2 | Number of occurrences | Proportion of total | Proportion in group |
+|-------------------+-----------------------+---------------------+---------------------|
+|                 1 |                264398 |     99.285767930905 |     99.285767930905 |
+|                 2 |                  1884 |   0.707472775065715 |   0.707472775065715 |
+|                 3 |                    18 | 0.00675929402929027 | 0.00675929402929027 |
+
+Interestingly, it seems that this is a major success!
+
+** Flag people
+
+Below, I implement the ~flag_person_id~ variable, in accordance with the following table:
+| Flag number | Meaning                                                                                             |
+|-------------+-----------------------------------------------------------------------------------------------------|
+|             | <30>                                                                                                |
+|           0 | Person is uniquely identified by (household, birthday, sex)                                         |
+|           1 | Person's birthday is missing, but (household, AGE, sex) identifies them uniquely                    |
+|           2 | Person's birthday is present, but there are two individuals with same birthday-sex in the household |
+|           3 | Person's birthday is missing, but there are two individuals with same age-sex in the household      |
+
+#+BEGIN_SRC R :session :results silent output :tangle yes
+dt_pnad[, flag_person_id := NULL]
+dt_pnad[!is.na(person_id1) & appearance_count1 == 1, flag_person_id := 0]
+dt_pnad[!is.na(person_id2) & appearance_count2 == 1, flag_person_id := 1]
+dt_pnad[!is.na(person_id1) & appearance_count1 > 1, flag_person_id := 2]
+dt_pnad[!is.na(person_id2) & appearance_count2 > 1, flag_person_id := 3]
+#+END_SRC
+
+
+Now let's tabulate the results.
+
+#+BEGIN_SRC R :session :results table :exports both :tangle no :colnames yes
+tab(dt_pnad, "flag_person_id")[[1]]$tab[]
+#+END_SRC
+
+#+RESULTS:
+| flag_person_id | Number of occurrences | Proportion of total | Proportion in group |
+|----------------+-----------------------+---------------------+---------------------|
+|              0 |               2565951 |    90.2539363743324 |    90.2539363743324 |
+|              1 |                264398 |    9.29985033599657 |    9.29985033599657 |
+|              2 |                 10784 |   0.379312952531362 |   0.379312952531362 |
+|              3 |                  1902 |  0.0669003371397116 |  0.0669003371397116 |
+
+** Joining identifiers
+
+It is useful to join the two identifiers ~person_id1~ and ~person_id2~ now. Steps:
+
+1. Create a single variable ~person_id~ joining both -- but only when flag is <= 1
+
+   #+BEGIN_SRC R :session :results silent output :tangle yes
+dt_pnad[flag_person_id <= 1 & !is.na(person_id1), person_id := person_id1]
+dt_pnad[flag_person_id <= 1 & !is.na(person_id2), person_id := person_id2]
+   #+END_SRC
+2. Create neat labels based on ~person_id~
+
+   #+BEGIN_SRC R :session :results silent output :tangle yes
+dt_relabel <- dt_pnad[!is.na(person_id), .(person_id = unique(person_id))]
+dt_relabel[, new_id := formatC(1:.N,
+                               width=floor(log10(.N))+1,
+                               format="d",
+                               flag="0")]
+
+   #+END_SRC
+
+3. Overwrite ~person_id~ with neater ~new_id~ in ~dt_pnad~:
+
+   #+BEGIN_SRC R :session :results silent output :tangle yes
+dt_pnad[dt_relabel, person_id := factor(new_id), on="person_id"]
+   #+END_SRC
+
+3. Keep only the relabeled ~person_id~ and ~flag_person_id~
+   #+BEGIN_SRC R :session :results silent output :tangle yes
+dt_pnad[, c("person_id1", "person_id2", "appearance_count1", "appearance_count2") := NULL]
+   #+END_SRC

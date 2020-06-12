@@ -56,7 +56,6 @@ groups_specification[[1]] <- list(
                 "High School" = c("5","6"),
                 "Higher Educ" = c("7"))
 )
-
 groups_specification[[2]] <- list(
   name = "formality_status",
   variable = "VD4009",
@@ -65,12 +64,14 @@ groups_specification[[2]] <- list(
                 self_employed = "")
 )
 
-cols.keep <- c("household", "qid","Ano", "Trimestre", "dbirth", "age", "UPA",
-               "uf_name", "V1023", "V2003", "V2005", "V1028", "male", "V2010",
-               "head", "V20082", "VD3004", "VD4002", "VD4009", "VD4015",
-               "VD4016", "VD4017", "VD4019", "VD4020", "V4010", "V4013",
-               "V4019", "V4046", "VD4001", "VD4007", "VD4010", "VD4011",
-               "VD4012", "formality_status", "educ_group", "labor_status")
+cols.keep <- c("household", "person_id", "qid","Ano", "Trimestre", "dbirth",
+               "age", "UPA", "uf_name", "V1023", "V2003", "V2005", "V1028",
+               "male", "V2010", "head", "V20082", "VD3004", "VD4002", "VD4009",
+               "VD4015", "VD4016", "VD4017", "VD4019", "VD4020", "V4010",
+               "V4013", "V4019", "V4046", "VD4001", "VD4007", "VD4010",
+               "VD4011", "VD4012", "formality_status", "educ_group",
+               "labor_status")
+
 ##        ^  Note that some of the variables are created in the cleaning
 ##           process and do not show up in the documentation file.
 ## =============================================================================
@@ -147,7 +148,7 @@ clean_each <- function(dt_quarter, param) {
 }
 
 
-invisible(lapply(list_pnad, clean_each, param=param))
+invisible(lapply(list_pnad, clean_each, param = param))
 ## =============================================================================
 
 
@@ -168,6 +169,9 @@ gc()
 dt_pnad[, qid_pretty := qid]
 prettyQuarter(dt_pnad, "qid_pretty")
 
+## Infer individual IDs from (hh, sex, dbirth) or (hh,sex,age)
+pnadInferIndividualIDs(dt_pnad)
+
 
 ## * Part 5: Export
 
@@ -177,5 +181,5 @@ if (!dir.exists(param$export_directory)) {
   dir.create(param$export_directory)
 }
 
-saveRDS(dt_pnad[, cols.keep, with=FALSE],
+saveRDS(dt_pnad[, cols.keep, with = FALSE],
         file.path(param$export_directory, glue(param$export_fullname)))
