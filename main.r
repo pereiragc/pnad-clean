@@ -32,10 +32,10 @@ dlpath <- "../PNAD_download"
 param <- list(
   dlpath = dlpath,
   dict_filename=guessDictFilename(dlpath), # "Input_PNADC_trimestral.txt"
-  startyear = 2015,
+  startyear = 2012,
   startqtr = 1,
-  endyear = 2016,
-  endqtr = 4,
+  endyear = 2020,
+  endqtr = 1,
   state_varname="uf_name",
   export_directory = "./output",
   export_fullname = paste0("pnadc_treated_",
@@ -64,14 +64,13 @@ groups_specification[[2]] <- list(
                 self_employed = "")
 )
 
-cols.keep <- c("household", "person_id", "qid","Ano", "Trimestre", "dbirth",
-               "age", "UPA", "uf_name", "V1023", "V2003", "V2005", "V1028",
-               "male", "V2010", "head", "V20082", "VD3004", "VD4002", "VD4009",
-               "VD4015", "VD4016", "VD4017", "VD4019", "VD4020", "V4010",
-               "V4013", "V4019", "V4046", "VD4001", "VD4007", "VD4010",
-               "VD4011", "VD4012", "formality_status", "educ_group",
+cols.keep <- c("household", "person_id", "qid","qid_pretty","Ano", "Trimestre",
+               "dbirth", "age", "UPA", "uf_name", "V1023", "V2003", "V2005",
+               "V1028", "male", "V4041", "V2010", "head", "V20082", "VD3004", "VD3005",
+               "VD4002", "VD4009", "VD4015", "VD4016", "VD4017", "VD4019",
+               "VD4020", "V4010", "V4013", "V4019", "V4046", "VD4001", "VD4007",
+               "VD4010", "VD4011", "VD4012", "formality_status", "educ_group",
                "labor_status")
-
 ##        ^  Note that some of the variables are created in the cleaning
 ##           process and do not show up in the documentation file.
 ## =============================================================================
@@ -168,6 +167,11 @@ gc()
 ## for subsetting]
 dt_pnad[, qid_pretty := qid]
 prettyQuarter(dt_pnad, "qid_pretty")
+
+
+## Order education levels
+dt_pnad[, VD3004 := factor(VD3004, levels=sort(levels(VD3004)), ordered=TRUE)]
+dt_pnad[, VD3005 := factor(VD3005, levels=sort(levels(VD3005)), ordered=TRUE)]
 
 ## Infer individual IDs from (hh, sex, dbirth) or (hh,sex,age)
 pnadInferIndividualIDs(dt_pnad)
